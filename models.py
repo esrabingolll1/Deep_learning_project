@@ -26,26 +26,26 @@ class CNN(nn.Module):
         use_batchnorm: True ise her Conv katmanından sonra BatchNorm eklenir.
     """
 
-    def __init__(self, num_classes=10, use_dropout=False, use_batchnorm=False):
+    def __init__(self, num_classes=10, dropout_rate=0.0, use_batchnorm=False):
         super().__init__()
 
         # --- Convolutional Block 1 ---
-        self.conv1 = nn.Conv2d(3, 32, kernel_size=3, padding=1)
-        self.bn1   = nn.BatchNorm2d(32) if use_batchnorm else nn.Identity()
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.bn2   = nn.BatchNorm2d(64) if use_batchnorm else nn.Identity()
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, padding=1)
+        self.bn1   = nn.BatchNorm2d(16) if use_batchnorm else nn.Identity()
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
+        self.bn2   = nn.BatchNorm2d(32) if use_batchnorm else nn.Identity()
         self.pool  = nn.MaxPool2d(2, 2)
 
         # --- Convolutional Block 2 ---
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
-        self.bn3   = nn.BatchNorm2d(128) if use_batchnorm else nn.Identity()
-        self.conv4 = nn.Conv2d(128, 128, kernel_size=3, padding=1)
-        self.bn4   = nn.BatchNorm2d(128) if use_batchnorm else nn.Identity()
+        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.bn3   = nn.BatchNorm2d(64) if use_batchnorm else nn.Identity()
+        self.conv4 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        self.bn4   = nn.BatchNorm2d(64) if use_batchnorm else nn.Identity()
 
         # --- Fully Connected ---
-        self.fc1     = nn.Linear(128 * 8 * 8, 512)
-        self.dropout = nn.Dropout(0.5) if use_dropout else nn.Identity()
-        self.fc2     = nn.Linear(512, num_classes)
+        self.fc1     = nn.Linear(64 * 8 * 8, 256)
+        self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0.0 else nn.Identity()
+        self.fc2     = nn.Linear(256, num_classes)
 
     def forward(self, x):
         # Block 1  (ReLU aktivasyonu + havuzlama)
@@ -62,3 +62,21 @@ class CNN(nn.Module):
         x = self.dropout(x)
         x = self.fc2(x)
         return x
+
+
+def count_cnn_parameters(num_classes=10, use_dropout=False, use_batchnorm=False) -> int:
+    """
+    Verilen CNN konfigürasyonu için toplam parametre sayısını hesaplar.
+
+    Teknik yorum (Capacity ve overfitting):
+    Parametre sayısı (model kapasitesi) arttıkça modelin veriyi ezberleme (memorization)
+    eğilimi de genellikle artar; bu da bias azalırken variance büyümesine ve dolayısıyla
+    overfitting riskinin yükselmesine yol açabilir. Düzenlileştirme (L1/L2, dropout vb.)
+    bu trade-off dengesini daha kontrollü tutmayı amaçlar.
+    """
+    model = CNN(
+        num_classes=num_classes,
+        use_dropout=use_dropout,
+        use_batchnorm=use_batchnorm,
+    )
+    return sum(p.numel() for p in model.parameters())

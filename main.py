@@ -12,10 +12,20 @@ Tüm düzenlileştirme parametreleri argüman olarak verilebilir.
 """
 
 import argparse
+import random
+import numpy as np
 import torch
 from data import get_dataloaders
 from models import CNN
 from train import train_model
+
+def set_seed(seed=42):
+    """Eğitim metotlarının bilimsel kıyaslaması için tam tekrarlanabilirlik."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 
 def get_device():
@@ -36,10 +46,13 @@ def main():
     parser.add_argument('--l1',         type=float, default=0.0,  help='L1 regularization lambda')
     parser.add_argument('--l2',         type=float, default=0.0,  help='L2 weight decay')
     parser.add_argument('--label_smoothing', type=float, default=0.0, help='Label smoothing factor')
-    parser.add_argument('--use_dropout',   action='store_true', help='Enable Dropout(0.5)')
+    parser.add_argument('--dropout_rate',  type=float, default=0.0, help='Dropout rate (e.g. 0.2, 0.5)')
     parser.add_argument('--use_batchnorm', action='store_true', help='Enable Batch Normalization')
+    parser.add_argument('--adv_train',     action='store_true', help='Enable Adversarial Training (FGSM)')
+    parser.add_argument('--save_model',    action='store_true', help='Save trained model weights for tests')
 
     args = parser.parse_args()
+    set_seed(42)  # Seed sabitlenir
     device = get_device()
 
     print(f"{'═' * 55}")
@@ -50,8 +63,9 @@ def main():
     print(f"  L1 Lambda     : {args.l1}")
     print(f"  L2 Decay      : {args.l2}")
     print(f"  Label Smooth  : {args.label_smoothing}")
-    print(f"  Dropout       : {args.use_dropout}")
+    print(f"  Dropout Rate  : {args.dropout_rate}")
     print(f"  BatchNorm     : {args.use_batchnorm}")
+    print(f"  Adv Train     : {args.adv_train}")
     print(f"{'═' * 55}\n")
 
     # Veri yükleme
@@ -61,7 +75,7 @@ def main():
     # Model oluşturma
     model = CNN(
         num_classes=10,
-        use_dropout=args.use_dropout,
+        dropout_rate=args.dropout_rate,
         use_batchnorm=args.use_batchnorm,
     )
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}\n")
@@ -77,12 +91,21 @@ def main():
         l1_lambda=args.l1,
         l2_weight_decay=args.l2,
         label_smoothing=args.label_smoothing,
+        adv_train=args.adv_train,
     )
 
     print(f"\n{'═' * 55}")
     print(f"  Training finished!")
     print(f"  Final Train Acc : {history['train_acc'][-1]:.2f}%")
     print(f"  Final Test Acc  : {history['test_acc'][-1]:.2f}%")
+    
+    if args.save_model:
+        import os
+        os.makedirs('results', exist_ok=True)
+        save_path = f"results/model_final.pth"
+        torch.save(model.state_dict(), save_path)
+        print(f"  Model Saved To  : {save_path}")
+        
     print(f"{'═' * 55}")
 
 
