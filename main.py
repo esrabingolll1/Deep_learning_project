@@ -50,6 +50,7 @@ def main():
     parser.add_argument('--use_batchnorm', action='store_true', help='Enable Batch Normalization')
     parser.add_argument('--adv_train',     action='store_true', help='Enable Adversarial Training (FGSM)')
     parser.add_argument('--save_model',    action='store_true', help='Save trained model weights for tests')
+    parser.add_argument('--no_augmentation',action='store_true', help='Disable Data Augmentation')
 
     args = parser.parse_args()
     set_seed(42)  # Seed sabitlenir
@@ -66,11 +67,15 @@ def main():
     print(f"  Dropout Rate  : {args.dropout_rate}")
     print(f"  BatchNorm     : {args.use_batchnorm}")
     print(f"  Adv Train     : {args.adv_train}")
+    print(f"  Augmentation  : {not args.no_augmentation}")
     print(f"{'═' * 55}\n")
 
     # Veri yükleme
     print("Loading CIFAR-10 dataset...")
-    trainloader, testloader = get_dataloaders(batch_size=args.batch_size)
+    trainloader, testloader = get_dataloaders(
+        batch_size=args.batch_size, 
+        use_augmentation=not args.no_augmentation
+    )
 
     # Model oluşturma
     model = CNN(

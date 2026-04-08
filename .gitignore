@@ -1,7 +1,9 @@
 # Virtual Environment
 proje_deep_learning/
 venv/
+.venv/
 env/
+.env/
 
 # Data
 data/

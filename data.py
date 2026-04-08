@@ -22,23 +22,30 @@ CLASSES = ('airplane', 'automobile', 'bird', 'cat', 'deer',
            'dog', 'frog', 'horse', 'ship', 'truck')
 
 
-def get_dataloaders(batch_size=128, num_workers=2):
+def get_dataloaders(batch_size=128, num_workers=2, use_augmentation=True):
     """
     CIFAR-10 eğitim ve test veri yükleyicilerini oluşturur.
 
     Args:
         batch_size: Mini-batch boyutu.
         num_workers: Paralel veri yükleme için iş parçacığı sayısı.
+        use_augmentation: Eğitim setinde veri artırma kullanılsın mı?
 
     Returns:
         (trainloader, testloader) tuple'ı.
     """
-    transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD),
-    ])
+    if use_augmentation:
+        transform_train = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD),
+        ])
+    else:
+        transform_train = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD),
+        ])
 
     transform_test = transforms.Compose([
         transforms.ToTensor(),
