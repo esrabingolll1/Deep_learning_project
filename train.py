@@ -15,7 +15,12 @@ def train_model(model, trainloader, testloader, epochs, device,
                 lr=0.001, l1_lambda=0.0, l2_weight_decay=0.0,
                 label_smoothing=0.0, verbose=True,
                 attack_fn=None, input_grad_callback=None, track_input_grads=False,
-                adv_train=False, adv_epsilon=0.03):
+                adv_train=False, adv_epsilon=0.03,
+                optimizer_name="adam",
+                scheduler_name="cosine",
+                scheduler_patience=2,
+                scheduler_factor=0.5,
+                grad_clip_norm=0.0):
     """
     Modeli eğitir ve epoch bazında metrikleri döndürür.
 
@@ -77,9 +82,34 @@ def train_model(model, trainloader, testloader, epochs, device,
     # Cross-Entropy kaybı (opsiyonel Label Smoothing desteği)
     criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
 
-    # Optimizer: L2 düzenlileştirme weight_decay ile uygulanır
-    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=l2_weight_decay)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+    # Optimizer seçimi: Adam veya SGD
+    optimizer_name = optimizer_name.lower()
+    if optimizer_name == "sgd":
+        optimizer = optim.SGD(
+            model.parameters(),
+            lr=lr,
+            momentum=0.9,
+            weight_decay=l2_weight_decay,
+        )
+    else:
+        optimizer = optim.Adam(
+            model.parameters(),
+            lr=lr,
+            weight_decay=l2_weight_decay,
+        )
+
+    # Learning-rate scheduler seçimi
+    scheduler_name = scheduler_name.lower()
+    scheduler = None
+    if scheduler_name == "cosine":
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+    elif scheduler_name == "plateau":
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            factor=scheduler_factor,
+            patience=scheduler_patience,
+        )
 
     history = {
         'train_loss': [],
@@ -149,6 +179,8 @@ def train_model(model, trainloader, testloader, epochs, device,
                 outputs_adv = model(adv_inputs)
                 loss_adv = compute_loss(outputs_adv, labels)
                 loss_adv.backward()
+                if grad_clip_norm > 0:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip_norm)
                 optimizer.step()
 
                 running_loss += loss_adv.item()
@@ -160,10 +192,14 @@ def train_model(model, trainloader, testloader, epochs, device,
                 outputs_adv = model(adv_inputs)
                 loss_adv = compute_loss(outputs_adv, labels)
                 loss_adv.backward() # Combine gradients
+                if grad_clip_norm > 0:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip_norm)
                 optimizer.step()
                 running_loss += (loss.item() + loss_adv.item()) / 2.0
                 _, predicted = outputs.max(1)
             else:
+                if grad_clip_norm > 0:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip_norm)
                 optimizer.step()
                 running_loss += loss.item()
                 _, predicted = outputs.max(1)
@@ -211,7 +247,11 @@ def train_model(model, trainloader, testloader, epochs, device,
                   f"Test Acc: {test_acc:.2f}%  |  "
                   f"Val Loss: {val_loss_epoch:.4f}")
 
-        scheduler.step()
+        if scheduler is not None:
+            if scheduler_name == "plateau":
+                scheduler.step(val_loss_epoch)
+            else:
+                scheduler.step()
 
         if patience_counter >= 5:
             if verbose:

@@ -1,9 +1,9 @@
 """
-fgsm_eval.py - Öğrenci 5: Güvenlik Analisti
+fgsm_eval.py - Öğrenci 5: Week 5 Optimization & Güvenlik Analizi
 
-FGSM (Fast Gradient Sign Method) saldırısını farklı düzenlileştirme
-konfigürasyonlarıyla eğitilmiş modellere uygular ve hangi yöntemin
-adversarial saldırılara karşı en dirençli olduğunu karşılaştırır.
+FGSM (Fast Gradient Sign Method) saldırısını farklı optimizer
+senaryolarıyla (SGD vs Adam) eğitilmiş modellere uygular.
+Ayrıca gradient clipping (max-norm) etkisini robustness açısından kıyaslar.
 
 Çalıştırma:
     python fgsm_eval.py
@@ -258,12 +258,12 @@ def main():
 
     trainloader, testloader = get_dataloaders(batch_size=128)
 
-    # ── Model Konfigürasyonları ──────────────────────────────────────────────
+    # ── Model Konfigürasyonları (Week 5: Optimizer + Grad Clipping) ────────
     configs = [
-        {'label': 'Base Model',       'l1': 0.0,   'l2': 0.0,   'adv': False},
-        {'label': 'L1 (λ=1e-4)',      'l1': 1e-4,  'l2': 0.0,   'adv': False},
-        {'label': 'L2 (λ=1e-3)',      'l1': 0.0,   'l2': 1e-3,  'adv': False},
-        {'label': 'Adv Trained',      'l1': 0.0,   'l2': 0.0,   'adv': True },
+        {'label': 'SGD (No Clip)',    'optimizer': 'sgd',  'clip': 0.0},
+        {'label': 'SGD (Clip=1.0)',   'optimizer': 'sgd',  'clip': 1.0},
+        {'label': 'Adam (No Clip)',   'optimizer': 'adam', 'clip': 0.0},
+        {'label': 'Adam (Clip=1.0)',  'optimizer': 'adam', 'clip': 1.0},
     ]
 
     trained_models = {}
@@ -280,9 +280,9 @@ def main():
             testloader=testloader,
             epochs=EPOCHS,
             device=device,
-            l1_lambda=cfg['l1'],
-            l2_weight_decay=cfg['l2'],
-            adv_train=cfg['adv'],
+            optimizer_name=cfg['optimizer'],
+            scheduler_name='cosine',
+            grad_clip_norm=cfg['clip'],
         )
         trained_models[cfg['label']] = model
         print()
@@ -316,9 +316,9 @@ def main():
     # ε=0.1 index = 4
     plot_accuracy_drop_bar(results, epsilon_idx=4, epsilons=epsilons)
 
-    # Adversarial görüntüler sadece Base Model ile gösterilir
+    # Adversarial görüntüler referans senaryo ile gösterilir
     plot_adversarial_samples(
-        model=trained_models['Base Model'],
+        model=trained_models['Adam (No Clip)'],
         testloader=testloader,
         epsilons_to_show=[0.0, 0.05, 0.2],
         device=device,

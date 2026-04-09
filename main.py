@@ -51,6 +51,9 @@ def main():
     parser.add_argument('--adv_train',     action='store_true', help='Enable Adversarial Training (FGSM)')
     parser.add_argument('--save_model',    action='store_true', help='Save trained model weights for tests')
     parser.add_argument('--no_augmentation',action='store_true', help='Disable Data Augmentation')
+    parser.add_argument('--optimizer', type=str, default='adam', choices=['adam', 'sgd'], help='Optimizer type')
+    parser.add_argument('--scheduler', type=str, default='cosine', choices=['cosine', 'plateau', 'none'], help='LR scheduler type')
+    parser.add_argument('--grad_clip_norm', type=float, default=0.0, help='Gradient clipping max norm (0 disables)')
 
     args = parser.parse_args()
     set_seed(42)  # Seed sabitlenir
@@ -68,6 +71,9 @@ def main():
     print(f"  BatchNorm     : {args.use_batchnorm}")
     print(f"  Adv Train     : {args.adv_train}")
     print(f"  Augmentation  : {not args.no_augmentation}")
+    print(f"  Optimizer     : {args.optimizer}")
+    print(f"  Scheduler     : {args.scheduler}")
+    print(f"  Grad Clip     : {args.grad_clip_norm}")
     print(f"{'═' * 55}\n")
 
     # Veri yükleme
@@ -97,6 +103,9 @@ def main():
         l2_weight_decay=args.l2,
         label_smoothing=args.label_smoothing,
         adv_train=args.adv_train,
+        optimizer_name=args.optimizer,
+        scheduler_name=args.scheduler,
+        grad_clip_norm=args.grad_clip_norm,
     )
 
     print(f"\n{'═' * 55}")
