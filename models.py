@@ -26,26 +26,36 @@ class CNN(nn.Module):
         use_batchnorm: True ise her Conv katmanından sonra BatchNorm eklenir.
     """
 
-    def __init__(self, num_classes=10, dropout_rate=0.0, use_batchnorm=False):
+    def __init__(
+        self,
+        num_classes=10,
+        dropout_rate=0.0,
+        use_batchnorm=False,
+        base_channels=16,
+        fc_hidden_dim=256,
+    ):
         super().__init__()
+        c1 = base_channels
+        c2 = base_channels * 2
+        c3 = base_channels * 4
 
         # --- Convolutional Block 1 ---
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, padding=1)
-        self.bn1   = nn.BatchNorm2d(16) if use_batchnorm else nn.Identity()
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
-        self.bn2   = nn.BatchNorm2d(32) if use_batchnorm else nn.Identity()
+        self.conv1 = nn.Conv2d(3, c1, kernel_size=3, padding=1)
+        self.bn1   = nn.BatchNorm2d(c1) if use_batchnorm else nn.Identity()
+        self.conv2 = nn.Conv2d(c1, c2, kernel_size=3, padding=1)
+        self.bn2   = nn.BatchNorm2d(c2) if use_batchnorm else nn.Identity()
         self.pool  = nn.MaxPool2d(2, 2)
 
         # --- Convolutional Block 2 ---
-        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.bn3   = nn.BatchNorm2d(64) if use_batchnorm else nn.Identity()
-        self.conv4 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
-        self.bn4   = nn.BatchNorm2d(64) if use_batchnorm else nn.Identity()
+        self.conv3 = nn.Conv2d(c2, c3, kernel_size=3, padding=1)
+        self.bn3   = nn.BatchNorm2d(c3) if use_batchnorm else nn.Identity()
+        self.conv4 = nn.Conv2d(c3, c3, kernel_size=3, padding=1)
+        self.bn4   = nn.BatchNorm2d(c3) if use_batchnorm else nn.Identity()
 
         # --- Fully Connected ---
-        self.fc1     = nn.Linear(64 * 8 * 8, 256)
+        self.fc1     = nn.Linear(c3 * 8 * 8, fc_hidden_dim)
         self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0.0 else nn.Identity()
-        self.fc2     = nn.Linear(256, num_classes)
+        self.fc2     = nn.Linear(fc_hidden_dim, num_classes)
 
     def forward(self, x):
         # Block 1  (ReLU aktivasyonu + havuzlama)
@@ -64,7 +74,13 @@ class CNN(nn.Module):
         return x
 
 
-def count_cnn_parameters(num_classes=10, use_dropout=False, use_batchnorm=False) -> int:
+def count_cnn_parameters(
+    num_classes=10,
+    dropout_rate=0.0,
+    use_batchnorm=False,
+    base_channels=16,
+    fc_hidden_dim=256,
+) -> int:
     """
     Verilen CNN konfigürasyonu için toplam parametre sayısını hesaplar.
 
@@ -76,7 +92,9 @@ def count_cnn_parameters(num_classes=10, use_dropout=False, use_batchnorm=False)
     """
     model = CNN(
         num_classes=num_classes,
-        use_dropout=use_dropout,
+        dropout_rate=dropout_rate,
         use_batchnorm=use_batchnorm,
+        base_channels=base_channels,
+        fc_hidden_dim=fc_hidden_dim,
     )
     return sum(p.numel() for p in model.parameters())

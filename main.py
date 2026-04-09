@@ -48,6 +48,8 @@ def main():
     parser.add_argument('--label_smoothing', type=float, default=0.0, help='Label smoothing factor')
     parser.add_argument('--dropout_rate',  type=float, default=0.0, help='Dropout rate (e.g. 0.2, 0.5)')
     parser.add_argument('--use_batchnorm', action='store_true', help='Enable Batch Normalization')
+    parser.add_argument('--base_channels', type=int, default=16, help='Base conv channel width (capacity control)')
+    parser.add_argument('--fc_hidden_dim', type=int, default=256, help='Hidden dimension of FC layer (capacity control)')
     parser.add_argument('--adv_train',     action='store_true', help='Enable Adversarial Training (FGSM)')
     parser.add_argument('--save_model',    action='store_true', help='Save trained model weights for tests')
     parser.add_argument('--no_augmentation',action='store_true', help='Disable Data Augmentation')
@@ -69,6 +71,8 @@ def main():
     print(f"  Label Smooth  : {args.label_smoothing}")
     print(f"  Dropout Rate  : {args.dropout_rate}")
     print(f"  BatchNorm     : {args.use_batchnorm}")
+    print(f"  Base Channels : {args.base_channels}")
+    print(f"  FC Hidden Dim : {args.fc_hidden_dim}")
     print(f"  Adv Train     : {args.adv_train}")
     print(f"  Augmentation  : {not args.no_augmentation}")
     print(f"  Optimizer     : {args.optimizer}")
@@ -88,6 +92,8 @@ def main():
         num_classes=10,
         dropout_rate=args.dropout_rate,
         use_batchnorm=args.use_batchnorm,
+        base_channels=args.base_channels,
+        fc_hidden_dim=args.fc_hidden_dim,
     )
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}\n")
 

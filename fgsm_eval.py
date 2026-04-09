@@ -23,7 +23,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from data import get_dataloaders, denormalize, CLASSES
+from data import get_dataloaders, denormalize, CLASSES, CIFAR10_MEAN, CIFAR10_STD
 from models import CNN
 from train import train_model
 
@@ -98,7 +98,14 @@ def fgsm_attack(model, images, labels, epsilon, device):
     # Gradyanın işaretine göre pertürbasyon uygula
     sign_grad   = images.grad.data.sign()
     adv_images  = images + epsilon * sign_grad
-    adv_images  = torch.clamp(adv_images, 0.0, 1.0)
+
+    # Girişler normalize uzayda olduğu için clamp aralığını da
+    # kanal bazında normalize uzaya dönüştürerek uygula.
+    mean = torch.tensor(CIFAR10_MEAN, device=device, dtype=adv_images.dtype).view(1, 3, 1, 1)
+    std = torch.tensor(CIFAR10_STD, device=device, dtype=adv_images.dtype).view(1, 3, 1, 1)
+    lower = (0.0 - mean) / std
+    upper = (1.0 - mean) / std
+    adv_images = torch.max(torch.min(adv_images, upper), lower)
 
     return adv_images.detach()
 

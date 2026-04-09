@@ -1,0 +1,29 @@
+{
+  "Small Capacity": {
+    "base_channels": 8,
+    "fc_hidden_dim": 128,
+    "parameter_count": 278842,
+    "best_test_acc": 47.3,
+    "final_train_acc": 45.49,
+    "final_test_acc": 47.3,
+    "generalization_gap": -1.8
+  },
+  "Base Capacity": {
+    "base_channels": 16,
+    "fc_hidden_dim": 256,
+    "parameter_count": 1111914,
+    "best_test_acc": 56.48,
+    "final_train_acc": 53.36,
+    "final_test_acc": 56.48,
+    "generalization_gap": -3.12
+  },
+  "Large Capacity": {
+    "base_channels": 32,
+    "fc_hidden_dim": 512,
+    "parameter_count": 4440778,
+    "best_test_acc": 60.05,
+    "final_train_acc": 57.7,
+    "final_test_acc": 60.05,
+    "generalization_gap": -2.34
+  }
+}

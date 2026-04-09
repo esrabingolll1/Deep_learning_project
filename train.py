@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import copy
+from data import CIFAR10_MEAN, CIFAR10_STD
 
 
 def train_model(model, trainloader, testloader, epochs, device,
@@ -121,6 +122,14 @@ def train_model(model, trainloader, testloader, epochs, device,
     patience_counter = 0
     best_model_weights = copy.deepcopy(model.state_dict())
 
+    def clamp_to_normalized_cifar_range(x):
+        """Tensor'u normalize edilmiş CIFAR-10 piksel sınırlarında tutar."""
+        mean = torch.tensor(CIFAR10_MEAN, device=x.device, dtype=x.dtype).view(1, 3, 1, 1)
+        std = torch.tensor(CIFAR10_STD, device=x.device, dtype=x.dtype).view(1, 3, 1, 1)
+        lower = (0.0 - mean) / std
+        upper = (1.0 - mean) / std
+        return torch.max(torch.min(x, upper), lower)
+
     def compute_loss(outputs, labels):
         """Veri kaybı + opsiyonel L1 regularization (parametre seviyesinde)."""
         data_loss = criterion(outputs, labels)
@@ -188,7 +197,7 @@ def train_model(model, trainloader, testloader, epochs, device,
             elif adv_train and input_grads is not None:
                 # 3) Adversarial Training Bonus: Clean + FGSM Loss
                 adv_inputs = inputs.detach() + adv_epsilon * input_grads.sign()
-                adv_inputs = torch.clamp(adv_inputs, 0.0, 1.0)
+                adv_inputs = clamp_to_normalized_cifar_range(adv_inputs)
                 outputs_adv = model(adv_inputs)
                 loss_adv = compute_loss(outputs_adv, labels)
                 loss_adv.backward() # Combine gradients
