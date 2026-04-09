@@ -9,7 +9,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import copy
-from data import CIFAR10_MEAN, CIFAR10_STD
+import os
+import matplotlib.pyplot as plt 
 
 
 def train_model(model, trainloader, testloader, epochs, device,
@@ -24,66 +25,11 @@ def train_model(model, trainloader, testloader, epochs, device,
                 grad_clip_norm=0.0):
     """
     Modeli eğitir ve epoch bazında metrikleri döndürür.
-
-    Args:
-        model: Eğitilecek nn.Module modeli.
-        trainloader: Eğitim veri yükleyicisi.
-        testloader: Doğrulama (test) veri yükleyicisi.
-        epochs: Toplam eğitim epoch sayısı.
-        device: Hesaplama cihazı (cpu / mps / cuda).
-        lr: Öğrenme oranı (learning rate).
-        l1_lambda: L1 düzenlileştirme katsayısı (0 = kapalı).
-        l2_weight_decay: L2 düzenlileştirme katsayısı (0 = kapalı).
-        label_smoothing: Label Smoothing katsayısı (0 = kapalı).
-        verbose: True ise her epoch'ta sonuçları ekrana yazdırır.
-        attack_fn: Opsiyonel adversarial attack fonksiyonu. Eğer verilirse,
-            eğitim sırasında "clean" ileri geçişinden sonra giriş gradyanları
-            hesaplanır ve attack_fn bu gradyanları kullanarak adversarial
-            girişleri üretir. Beklenen arayüz:
-
-            ``attack_fn(model, inputs, labels, input_grads) -> adv_inputs``
-
-            - inputs: (temiz) giriş tensorü
-            - input_grads: inputs'a göre loss gradyanı (detach edilmiş)
-            - adv_inputs: model için yeniden ileri geçişte kullanılacak tensör
-        input_grad_callback: input gradyanlarını yakalamak/incelemek için
-            çağrılan opsiyonel callback. İmza:
-            ``callback(batch_idx: int, input_grads: torch.Tensor)``
-        track_input_grads: True ise, clean pass sonrası inputs.grad snapshot'ı
-            (detach+clone) alınır. attack_fn olmasa bile gradyan takibi yapılır.
-
-    Returns:
-        dict: {
-            'train_loss': [...],
-            'train_acc':  [...],
-            'test_acc':   [...]
-        }
-
-    Notlar (metodolojik gerekçeler):
-        - Neden Cross-Entropy Loss?
-          Sınıflandırmada modelin logitlerinden elde edilen olasılık dağılımını,
-          ground-truth etiket ile karşılaştırmak için MLE (Maximum Likelihood
-          Estimation) perspektifi kullanılır. Cross-Entropy, gerçek etiketin
-          olasılığını maksimize etmeye karşılık gelen negatif log-likelihood'ı
-          minimize eder.
-
-        - Neden Adam Optimizer?
-          Adam, her parametre için ayrı bir adaptif öğrenme oranı üretir.
-          Bu sayede özellikle farklı ölçeklerdeki gradyanlarda eğitim daha hızlı
-          ve genellikle daha stabil ilerler; yerel minimum/plateau etkileri
-          daha yumuşak deneyimlenebilir.
-
-        - ReLU ve vanishing gradient ilişkisi:
-          ReLU, aktifken (x > 0) gradyanı 1 seviyesinde tutarak bilgi/gradient
-          akışını destekler. Bu, sigmoid benzeri fonksiyonların derin ağlarda
-          gradyanları küçültmesiyle ortaya çıkan vanishing gradient riskini azaltır.
     """
     model.to(device)
 
-    # Cross-Entropy kaybı (opsiyonel Label Smoothing desteği)
     criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
 
-    # Optimizer seçimi: Adam veya SGD
     optimizer_name = optimizer_name.lower()
     if optimizer_name == "sgd":
         optimizer = optim.SGD(
@@ -99,7 +45,6 @@ def train_model(model, trainloader, testloader, epochs, device,
             weight_decay=l2_weight_decay,
         )
 
-    # Learning-rate scheduler seçimi
     scheduler_name = scheduler_name.lower()
     scheduler = None
     if scheduler_name == "cosine":
@@ -122,26 +67,14 @@ def train_model(model, trainloader, testloader, epochs, device,
     patience_counter = 0
     best_model_weights = copy.deepcopy(model.state_dict())
 
-    def clamp_to_normalized_cifar_range(x):
-        """Tensor'u normalize edilmiş CIFAR-10 piksel sınırlarında tutar."""
-        mean = torch.tensor(CIFAR10_MEAN, device=x.device, dtype=x.dtype).view(1, 3, 1, 1)
-        std = torch.tensor(CIFAR10_STD, device=x.device, dtype=x.dtype).view(1, 3, 1, 1)
-        lower = (0.0 - mean) / std
-        upper = (1.0 - mean) / std
-        return torch.max(torch.min(x, upper), lower)
-
     def compute_loss(outputs, labels):
-        """Veri kaybı + opsiyonel L1 regularization (parametre seviyesinde)."""
         data_loss = criterion(outputs, labels)
         if l1_lambda > 0:
-            # L1, model parametrelerinin mutlak değerlerinin toplamı üzerinden
-            # manuel olarak eklenir. inputs'a göre gradyanı etkilemez.
             l1_penalty = sum(p.abs().sum() for p in model.parameters())
             return data_loss + l1_lambda * l1_penalty
         return data_loss
 
     for epoch in range(epochs):
-        # ─────────── Eğitim Aşaması ───────────
         model.train()
         running_loss = 0.0
         correct_train = 0
@@ -150,13 +83,11 @@ def train_model(model, trainloader, testloader, epochs, device,
         for batch_idx, (inputs, labels) in enumerate(trainloader):
             inputs, labels = inputs.to(device), labels.to(device)
 
-            # Adversarial attack varsa giriş gradyanına ihtiyaç vardır.
             need_input_grads = (attack_fn is not None) or track_input_grads or adv_train
             if need_input_grads:
                 inputs = inputs.detach()
                 inputs.requires_grad_(True)
 
-            # 1) Clean forward+backward -> inputs.grad elde et
             optimizer.zero_grad(set_to_none=True)
             outputs = model(inputs)
             loss = compute_loss(outputs, labels)
@@ -164,26 +95,14 @@ def train_model(model, trainloader, testloader, epochs, device,
 
             input_grads = None
             if need_input_grads:
-                # FGSM gibi saldırılar için bir snapshot saklıyoruz.
-                input_grads = (
-                    inputs.grad.detach().clone()
-                    if inputs.grad is not None
-                    else None
-                )
+                input_grads = inputs.grad.detach().clone() if inputs.grad is not None else None
                 if input_grad_callback is not None and input_grads is not None:
                     input_grad_callback(batch_idx=batch_idx, input_grads=input_grads)
 
-            # 2) Eğer attack_fn verildiyse adversarial girişle ikinci adım
             if attack_fn is not None:
                 with torch.no_grad():
-                    adv_inputs = attack_fn(
-                        model=model,
-                        inputs=inputs.detach(),
-                        labels=labels,
-                        input_grads=input_grads,
-                    )
+                    adv_inputs = attack_fn(model=model, inputs=inputs.detach(), labels=labels, input_grads=input_grads)
                 adv_inputs = adv_inputs.to(device).detach()
-
                 optimizer.zero_grad(set_to_none=True)
                 outputs_adv = model(adv_inputs)
                 loss_adv = compute_loss(outputs_adv, labels)
@@ -191,16 +110,14 @@ def train_model(model, trainloader, testloader, epochs, device,
                 if grad_clip_norm > 0:
                     torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip_norm)
                 optimizer.step()
-
                 running_loss += loss_adv.item()
                 _, predicted = outputs_adv.max(1)
             elif adv_train and input_grads is not None:
-                # 3) Adversarial Training Bonus: Clean + FGSM Loss
                 adv_inputs = inputs.detach() + adv_epsilon * input_grads.sign()
-                adv_inputs = clamp_to_normalized_cifar_range(adv_inputs)
+                adv_inputs = torch.clamp(adv_inputs, 0.0, 1.0)
                 outputs_adv = model(adv_inputs)
                 loss_adv = compute_loss(outputs_adv, labels)
-                loss_adv.backward() # Combine gradients
+                loss_adv.backward()
                 if grad_clip_norm > 0:
                     torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip_norm)
                 optimizer.step()
@@ -216,7 +133,6 @@ def train_model(model, trainloader, testloader, epochs, device,
             total_train += labels.size(0)
             correct_train += predicted.eq(labels).sum().item()
 
-        # ─────────── Doğrulama Aşaması ───────────
         model.eval()
         correct_test = 0
         total_test = 0
@@ -232,7 +148,6 @@ def train_model(model, trainloader, testloader, epochs, device,
                 total_test += labels.size(0)
                 correct_test += predicted.eq(labels).sum().item()
 
-        # Metrikleri kaydet
         epoch_loss = running_loss / len(trainloader)
         val_loss_epoch = val_running_loss / len(testloader)
         train_acc  = 100.0 * correct_train / total_train
@@ -270,4 +185,42 @@ def train_model(model, trainloader, testloader, epochs, device,
     if best_model_weights is not None:
         model.load_state_dict(best_model_weights)
 
+    plot_training(history, save_dir="ogrenci3")
+
     return history
+
+
+def plot_training(history, save_dir="ogrenci3", filename="training_plot.png"):
+    """
+    Eğitim loss ve accuracy grafiğini çizer ve PNG olarak kaydeder.
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, filename)
+
+    epochs = range(1, len(history['train_loss']) + 1)
+
+    plt.figure(figsize=(12, 5))
+
+    # Loss grafiği
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs, history['train_loss'], 'b-o', label='Train Loss')
+    plt.title('Train Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True)
+
+    # Accuracy grafiği
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs, history['train_acc'], 'b-o', label='Train Accuracy')
+    plt.plot(epochs, history['test_acc'], 'r-o', label='Test Accuracy')
+    plt.title('Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy (%)')
+    plt.legend()
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.savefig(save_path)
+    print(f"Plot saved as {save_path}")
+    plt.show()
