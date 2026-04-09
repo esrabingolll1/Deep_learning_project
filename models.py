@@ -33,6 +33,7 @@ class CNN(nn.Module):
         use_batchnorm=False,
         base_channels=16,
         fc_hidden_dim=256,
+        init_scheme="default",
     ):
         super().__init__()
         c1 = base_channels
@@ -57,6 +58,8 @@ class CNN(nn.Module):
         self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0.0 else nn.Identity()
         self.fc2     = nn.Linear(fc_hidden_dim, num_classes)
 
+        self._apply_init(init_scheme)
+
     def forward(self, x):
         # Block 1  (ReLU aktivasyonu + havuzlama)
         x = F.relu(self.bn1(self.conv1(x)))
@@ -73,6 +76,24 @@ class CNN(nn.Module):
         x = self.fc2(x)
         return x
 
+    def _apply_init(self, init_scheme):
+        """Conv/Linear katmanlarına opsiyonel ağırlık ilklendirme uygular."""
+        scheme = init_scheme.lower()
+        if scheme == "default":
+            return
+
+        for module in self.modules():
+            if isinstance(module, (nn.Conv2d, nn.Linear)):
+                if scheme == "he":
+                    nn.init.kaiming_normal_(module.weight, mode="fan_out", nonlinearity="relu")
+                elif scheme == "xavier":
+                    nn.init.xavier_normal_(module.weight)
+                else:
+                    raise ValueError(f"Unknown init_scheme: {init_scheme}")
+
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+
 
 def count_cnn_parameters(
     num_classes=10,
@@ -80,6 +101,7 @@ def count_cnn_parameters(
     use_batchnorm=False,
     base_channels=16,
     fc_hidden_dim=256,
+    init_scheme="default",
 ) -> int:
     """
     Verilen CNN konfigürasyonu için toplam parametre sayısını hesaplar.
@@ -96,5 +118,6 @@ def count_cnn_parameters(
         use_batchnorm=use_batchnorm,
         base_channels=base_channels,
         fc_hidden_dim=fc_hidden_dim,
+        init_scheme=init_scheme,
     )
     return sum(p.numel() for p in model.parameters())

@@ -9,6 +9,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import copy
+import os
+import matplotlib.pyplot as plt
 from data import CIFAR10_MEAN, CIFAR10_STD
 
 
@@ -21,7 +23,8 @@ def train_model(model, trainloader, testloader, epochs, device,
                 scheduler_name="cosine",
                 scheduler_patience=2,
                 scheduler_factor=0.5,
-                grad_clip_norm=0.0):
+                grad_clip_norm=0.0,
+                plot_path=None):
     """
     Modeli eğitir ve epoch bazında metrikleri döndürür.
 
@@ -270,4 +273,39 @@ def train_model(model, trainloader, testloader, epochs, device,
     if best_model_weights is not None:
         model.load_state_dict(best_model_weights)
 
+    if plot_path:
+        _save_training_plot(history, plot_path)
+
     return history
+
+
+def _save_training_plot(history, plot_path):
+    """Train/Test eğrilerini verilen dosya yoluna kaydeder."""
+    parent = os.path.dirname(plot_path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+    epochs = range(1, len(history['train_loss']) + 1)
+    plt.figure(figsize=(12, 5))
+
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs, history['train_loss'], 'b-o', label='Train Loss')
+    plt.title('Train Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True)
+
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs, history['train_acc'], 'b-o', label='Train Accuracy')
+    plt.plot(epochs, history['test_acc'], 'r-o', label='Test Accuracy')
+    plt.title('Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy (%)')
+    plt.legend()
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"  → {plot_path}")
