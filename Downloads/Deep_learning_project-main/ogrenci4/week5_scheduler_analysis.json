@@ -1,0 +1,26 @@
+{
+  "Cosine | Base (No Aug, No Smooth)": {
+    "best_test_acc": 74.42,
+    "final_test_acc": 74.42,
+    "epoch_reach_70_acc": 3,
+    "epochs_ran": 9
+  },
+  "Cosine | Aug+Smooth": {
+    "best_test_acc": 79.43,
+    "final_test_acc": 79.43,
+    "epoch_reach_70_acc": 3,
+    "epochs_ran": 10
+  },
+  "Plateau | Base (No Aug, No Smooth)": {
+    "best_test_acc": 75.72,
+    "final_test_acc": 75.16,
+    "epoch_reach_70_acc": 3,
+    "epochs_ran": 9
+  },
+  "Plateau | Aug+Smooth": {
+    "best_test_acc": 78.92,
+    "final_test_acc": 78.92,
+    "epoch_reach_70_acc": 4,
+    "epochs_ran": 10
+  }
+}
