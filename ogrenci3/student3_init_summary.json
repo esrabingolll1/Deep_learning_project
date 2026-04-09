@@ -1,0 +1,29 @@
+{
+  "Default Init + Dropout+BN": {
+    "init_scheme": "default",
+    "parameter_count": 1112266,
+    "best_test_acc": 63.76,
+    "final_train_acc": 56.05,
+    "final_test_acc": 63.76,
+    "generalization_gap": -7.71,
+    "epochs_ran": 6
+  },
+  "He Init + Dropout+BN": {
+    "init_scheme": "he",
+    "parameter_count": 1112266,
+    "best_test_acc": 10.28,
+    "final_train_acc": 10.12,
+    "final_test_acc": 9.9,
+    "generalization_gap": 0.22,
+    "epochs_ran": 6
+  },
+  "Xavier Init + Dropout+BN": {
+    "init_scheme": "xavier",
+    "parameter_count": 1112266,
+    "best_test_acc": 49.04,
+    "final_train_acc": 36.18,
+    "final_test_acc": 49.04,
+    "generalization_gap": -12.86,
+    "epochs_ran": 6
+  }
+}
