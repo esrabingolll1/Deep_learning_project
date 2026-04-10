@@ -115,7 +115,6 @@ def run_capacity_ablation(epochs=10, batch_size=128, subset_ratio=1.0):
         }
 
     plot_training_curves(results, filename="student1_capacity_ablation_curves.png")
-    # Artefakt standardı için grafik öğrenci klasörüne de kopyalanır.
     shutil.copyfile(
         "results/student1_capacity_ablation_curves.png",
         "ogrenci1/student1_capacity_ablation_curves.png",

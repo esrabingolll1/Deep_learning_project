@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "generated": "partial-run-summary",
+    "notes": "Düzenleme modelleri eğitim logu (terminal koşusu 259520) tamamlananlar; Adv Train eğitimi yarıda kesildi. FGSM tam düzenleme karşılaştırması için fgsm_eval.py baştan sona çalıştırılmalı."
+  },
+  "regularization_training_clean_test_acc": {
+    "Base (Adam)": 77.96,
+    "L1 (λ=1e-4)": 67.77,
+    "L2 (λ=1e-3)": 77.17,
+    "Dropout 0.2": 75.73,
+    "Dropout 0.5": 74.60,
+    "BatchNorm": 79.87,
+    "Label Smooth 0.1": 79.09
+  },
+  "adv_train_partial": {
+    "epochs_completed": 3,
+    "last_test_acc_percent": 64.99,
+    "status": "incomplete_in_log"
+  },
+  "fgsm_optimizer_study": {
+    "source": "terminal_run_274278_four_configs",
+    "epsilons": [0.0, 0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3],
+    "models": {
+      "SGD (No Clip)": [44.30, 19.95, 19.20, 17.35, 14.72, 12.62, 10.59, 7.55],
+      "SGD (Clip=1.0)": [36.11, 31.95, 30.88, 27.39, 22.24, 18.18, 14.97, 9.82],
+      "Adam (No Clip)": [77.18, 30.99, 28.00, 21.02, 14.89, 12.02, 10.42, 8.95],
+      "Adam (Clip=1.0)": [77.75, 31.73, 28.37, 21.14, 14.51, 11.70, 10.33, 9.25]
+    }
+  },
+  "ogrenci5_artifacts": {
+    "from_optimizer_run": [
+      "robustness_curve.png",
+      "accuracy_drop_bar.png",
+      "adversarial_samples.png"
+    ],
+    "regularization_fgsm_curves": "not_generated_incomplete_full_fgsm_eval"
+  }
+}

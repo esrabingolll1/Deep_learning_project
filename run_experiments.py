@@ -31,7 +31,6 @@ def run_regularization_comparison(epochs=10, batch_size=128):
 
     trainloader, testloader = get_dataloaders(batch_size=batch_size)
 
-    # Deney konfigürasyonları
     configs = [
         {"label": "Base Model",         "l1": 0.0,    "l2": 0.0},
         {"label": "L1 (λ=1e-4)",        "l1": 1e-4,   "l2": 0.0},
@@ -64,11 +63,9 @@ def run_regularization_comparison(epochs=10, batch_size=128):
         trained_models[label] = model
         print()
 
-    # ─── Grafik 1: Eğitim eğrileri karşılaştırması ───
     print("Generating training curves comparison...")
     plot_training_curves(results, filename="regularization_comparison.png")
 
-    # ─── Grafik 2: Ağırlık dağılımı histogramı ───
     print("Generating weight distribution histogram...")
     weight_dict = {}
     for label, model in trained_models.items():

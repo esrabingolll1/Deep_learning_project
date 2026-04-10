@@ -26,7 +26,6 @@ def generate_dataset_samples():
     trainloader, _ = get_dataloaders(batch_size=16)
     images, labels = next(iter(trainloader))
 
-    # Doğru denormalizasyon
     images = denormalize(images)
 
     plot_cifar10_samples(images, labels, CLASSES, filename="cifar10_samples.png")

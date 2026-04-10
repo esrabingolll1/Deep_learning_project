@@ -1,15 +1,4 @@
-"""
-main.py - Proje Giriş Noktası
-
-Komut satırından tek bir model eğitmek için kullanılır.
-Tüm düzenlileştirme parametreleri argüman olarak verilebilir.
-
-Örnekler:
-    python main.py --epochs 10
-    python main.py --epochs 15 --l2 0.001
-    python main.py --epochs 15 --use_dropout --use_batchnorm
-    python main.py --epochs 15 --label_smoothing 0.1
-"""
+"""CLI: tek model eğitimi (CIFAR-10, düzenlileştirme argümanları)."""
 
 import argparse
 import random
@@ -20,7 +9,6 @@ from models import CNN
 from train import train_model
 
 def set_seed(seed=42):
-    """Eğitim metotlarının bilimsel kıyaslaması için tam tekrarlanabilirlik."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -60,7 +48,7 @@ def main():
     parser.add_argument('--plot_path', type=str, default='', help='Optional path to save train/test curves PNG')
 
     args = parser.parse_args()
-    set_seed(42)  # Seed sabitlenir
+    set_seed(42)
     device = get_device()
 
     print(f"{'═' * 55}")
@@ -84,14 +72,12 @@ def main():
     print(f"  Plot Path     : {args.plot_path if args.plot_path else '(disabled)'}")
     print(f"{'═' * 55}\n")
 
-    # Veri yükleme
     print("Loading CIFAR-10 dataset...")
     trainloader, testloader = get_dataloaders(
         batch_size=args.batch_size, 
         use_augmentation=not args.no_augmentation
     )
 
-    # Model oluşturma
     model = CNN(
         num_classes=10,
         dropout_rate=args.dropout_rate,
@@ -102,7 +88,6 @@ def main():
     )
     print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}\n")
 
-    # Eğitim
     history = train_model(
         model=model,
         trainloader=trainloader,

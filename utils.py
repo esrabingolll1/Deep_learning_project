@@ -1,26 +1,22 @@
-"""
-utils.py - Görselleştirme Araçları
+"""Eğitim ve veri görselleştirme yardımcıları."""
 
-Eğitim sonuçlarını ve model analizlerini profesyonel kalitede
-görselleştiren yardımcı fonksiyonları içerir.
-"""
-
-import matplotlib.pyplot as plt
-import matplotlib
-import numpy as np
 import os
+
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
 
 matplotlib.rcParams.update({
     'figure.facecolor': '#FAFAFA',
-    'axes.facecolor':   '#FAFAFA',
-    'axes.grid':        True,
-    'grid.alpha':       0.3,
-    'grid.linestyle':   '--',
-    'font.size':        11,
-    'axes.titlesize':   13,
+    'axes.facecolor': '#FAFAFA',
+    'axes.grid': True,
+    'grid.alpha': 0.3,
+    'grid.linestyle': '--',
+    'font.size': 11,
+    'axes.titlesize': 13,
     'axes.titleweight': 'bold',
-    'legend.fontsize':  10,
-    'lines.linewidth':  2.0,
+    'legend.fontsize': 10,
+    'lines.linewidth': 2.0,
     'lines.markersize': 5,
 })
 
@@ -33,16 +29,7 @@ def _ensure_results_dir():
 
 
 def plot_training_curves(experiments, filename="training_curves.png"):
-    """
-    Birden fazla deneyin eğitim kaybı, eğitim doğruluğu ve test doğruluğunu
-    yan yana 3 panelde çizer.
-
-    Args:
-        experiments: {label: history_dict} sözlüğü.
-        filename: Kaydedilecek dosya adı.
-    """
     _ensure_results_dir()
-
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
     for i, (label, history) in enumerate(experiments.items()):
@@ -50,8 +37,8 @@ def plot_training_curves(experiments, filename="training_curves.png"):
         epochs = range(1, len(history['train_loss']) + 1)
 
         axes[0].plot(epochs, history['train_loss'], label=label, color=color, marker='o')
-        axes[1].plot(epochs, history['train_acc'],  label=label, color=color, marker='s')
-        axes[2].plot(epochs, history['test_acc'],   label=label, color=color, marker='^')
+        axes[1].plot(epochs, history['train_acc'], label=label, color=color, marker='s')
+        axes[2].plot(epochs, history['test_acc'], label=label, color=color, marker='^')
 
     axes[0].set_title("Training Loss")
     axes[0].set_xlabel("Epoch")
@@ -80,16 +67,7 @@ def plot_training_curves(experiments, filename="training_curves.png"):
 
 
 def plot_weight_distribution(weight_dict, filename="weight_distribution.png"):
-    """
-    Farklı modellerin ağırlık dağılımlarını üst üste binen histogramlar
-    olarak çizer.
-
-    Args:
-        weight_dict: {label: numpy_array} sözlüğü.
-        filename: Kaydedilecek dosya adı.
-    """
     _ensure_results_dir()
-
     fig, ax = plt.subplots(figsize=(10, 5))
 
     for i, (label, weights) in enumerate(weight_dict.items()):
@@ -112,17 +90,7 @@ def plot_weight_distribution(weight_dict, filename="weight_distribution.png"):
 
 
 def plot_cifar10_samples(images, labels, classes, filename="cifar10_samples.png"):
-    """
-    CIFAR-10 veri setinden örnek görüntüleri etiketleriyle birlikte gösterir.
-
-    Args:
-        images: Denormalize edilmiş görüntü tensörü.
-        labels: Etiket tensörü.
-        classes: Sınıf isimleri tuple'ı.
-        filename: Kaydedilecek dosya adı.
-    """
     _ensure_results_dir()
-
     fig, axes = plt.subplots(2, 8, figsize=(14, 4))
 
     for idx, ax in enumerate(axes.flat):
